@@ -37,6 +37,8 @@ const MessageArea: React.FC = () => {
 
   // Enhanced connection with retry logic
   const connect = useCallback(() => {
+
+    console.log("Inside Connect: " + userData.username);
     if (connectionStatus.connected) return;
 
     setConnectionStatus(prev => ({ ...prev, reconnecting: true }));
@@ -55,7 +57,7 @@ const MessageArea: React.FC = () => {
       console.error("Connection failed:", error);
       onError(error);
     }
-  }, [connectionStatus.connected]);
+  }, [userData.username, connectionStatus.connected]);
 
   // Enhanced connection success handler
   const onConnected = useCallback(() => {
@@ -95,31 +97,16 @@ const MessageArea: React.FC = () => {
   }, [connect, userData.username]);
 
   // Enhanced public message handler
+  // Here I need to modify the payload for Message
   const onPublicMessageReceived = useCallback((payload: any) => {
+    // So this payload is received form the Backedn right??
+    //  think payload is what it received from backend??
+    // Then what it is sending?
+    console.log(payload);
     try {
       const payloadData: Message = JSON.parse(payload.body);
       console.log("Public message received:", payloadData);
-
-      switch (payloadData.status) {
-        case MessageStatus.JOIN:
-          setOnlineUsers(prev => new Set(prev).add(payloadData.from));
-          if (!privateMessage.has(payloadData.from)) {
-            setPrivateMessage(prev => new Map(prev).set(payloadData.from, []));
-          }
-          break;
-        
-        case MessageStatus.LEAVE:
-          setOnlineUsers(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(payloadData.from);
-            return newSet;
-          });
-          break;
-        
-        case MessageStatus.MESSAGE:
-          setPublicMessage(prev => [...prev, payloadData]);
-          break;
-      }
+      setPublicMessage(prev => [...prev, payloadData]);
     } catch (error) {
       console.error("Error parsing public message:", error);
     }
@@ -173,9 +160,10 @@ const MessageArea: React.FC = () => {
   }, []);
 
   // User status change handler
+  // Only when user is joining [Not necessry message format]
   const onUserStatusReceived = useCallback((payload: any) => {
     try {
-      const statusData: Message = JSON.parse(payload.body);
+      const statusData = JSON.parse(payload.body);
       
       switch (statusData.status) {
         case MessageStatus.ONLINE:
@@ -209,7 +197,7 @@ const MessageArea: React.FC = () => {
 
     console.log("📤 Sending message:", JSON.stringify(chatMessage, null, 2));
     
-    stompClient.send("/app/message", {}, JSON.stringify(chatMessage));
+    stompClient.send("/app/status", {}, JSON.stringify(chatMessage));
   }, [userData.username]);
 
   const disconnect = useCallback(() => {
@@ -221,7 +209,7 @@ const MessageArea: React.FC = () => {
         status: MessageStatus.LEAVE,
       };
       
-      stompClient.send("/app/message", {}, JSON.stringify(leaveMessage));
+      stompClient.send("/app/status", {}, JSON.stringify(leaveMessage));
       stompClient.disconnect();
     }
     
@@ -238,10 +226,10 @@ const MessageArea: React.FC = () => {
   const sendPublicMessage = useCallback(() => {
     if (!stompClient || !userData.message.trim()) return;
 
+    // I think her eI also need to sedn the chatRoom also
     const chatMessage: Message = {
       from: userData.username,
       content: userData.message,
-      status: MessageStatus.MESSAGE,
     };
 
     stompClient.send("/app/message", {}, JSON.stringify(chatMessage));
@@ -417,16 +405,22 @@ const MessageArea: React.FC = () => {
                       className={`message ${chat.from === userData.username ? "self" : ""}`}
                     >
                       {chat.from !== userData.username && (
-                        <div className="avatar">{chat.from[0].toUpperCase()}</div>
+                        // <div className="avatar">{chat.from[0].toUpperCase()}</div>
+                        <div className="avatar">{chat.from}</div>
+                        
                       )}
                       <div className="message-content">
+                      {chat.from !== userData.username && (
+                        <div className="message-sender">{chat.from}</div>
+                      )}
                         <div className="message-data">{chat.content}</div>
                         <div className="message-time">
                           {chat.sendTime ? new Date(chat.sendTime).toLocaleTimeString() : ""}
                         </div>
                       </div>
                       {chat.from === userData.username && (
-                        <div className="avatar self">{chat.from[0].toUpperCase()}</div>
+                        // <div className="avatar self">{chat.from[0].toUpperCase()}</div>
+                        <div className="avatar">{chat.from}</div>
                       )}
                     </li>
                   ))
@@ -439,6 +433,9 @@ const MessageArea: React.FC = () => {
                         <div className="avatar">{chat.from[0].toUpperCase()}</div>
                       )}
                       <div className="message-content">
+                      {chat.from !== userData.username && (
+                        <div className="message-sender">{chat.from}</div>
+                      )}
                         <div className="message-data">{chat.content}</div>
                         <div className="message-time">
                           {chat.sendTime ? new Date(chat.sendTime).toLocaleTimeString() : ""}

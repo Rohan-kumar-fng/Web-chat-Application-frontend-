@@ -5,7 +5,7 @@ export interface Message {
     content: string;
     sendTime?: string;
     receivedTime?: string;
-    status: MessageStatus;
+    status?: MessageStatus;
     type?: MessageType;
 }
 

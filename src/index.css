@@ -123,3 +123,9 @@ body {
   border-right: 1px solid #e9ecef;
   overflow-y: auto;
 }
+
+.message-sender {
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: #333;
+}
